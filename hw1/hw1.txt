@@ -1,0 +1,27 @@
+Homework 1: Fixpoints and Grammar Filters
+
+In the following file I will discuss my solutions to each of the problems in homework 1.
+
+1. 
+I implemented this using match and if/else. I checked if the first element exists in b then recurse on the tail of a.
+
+2.
+All I did was ensure that a is a subset of b and that b is a subset of a. Building off of problem 1 was easier than writing new code.
+
+3.
+Here I returned b if a was empty otherwise I chose whether to add the first element of a based on whether or not it was seen in b already and recursed on the tail of a.
+
+4.
+For the problem of intersection I filtered to see which elements of a existed in b using List.filter and List.exists and was able to do it in one line.
+
+5.
+For the problem of set difference all I did was copy my code from intersection and change the List.exists to not(List.exists) so it chooses all the items of a that are not in b. 
+
+6.
+For the problem of computed fixed point I used if/else with recursion. I just used the equality given to find if the function call of f x was equal to x and if so returned x otherwise recursed on f and f x.
+
+7.
+For the problem of filtering the grammar I created numerous helper functions to help achieve the overall goal of filtering the grammar. First was to find all the reachable rules given a starting rule. I used a method similar to the hint code for this. To call this, unlike the hint code I did not use the computed fixed point function but rather created another recursive function. This basically did the same thing but didn't give me type errors like the other one did. Once I could do both of these things, all I needed to do was filter based on the returned rules from the previous function and I was able to do this with a simple List.filter command.
+
+8.
+The test cases that I wrote were similar to the ones given in the test cases but more focused on the cases of duplications.

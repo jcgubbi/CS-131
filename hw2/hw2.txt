@@ -1,0 +1,60 @@
+I wrote my make_matcher function first and largely based the code of 
+make_parser off of my solution to make_matcher. The main changes that I made 
+were adding an extra parameter to hold the tree and adding one extra function 
+that I used to build a curried acceptor function that concatenated trees 
+appropriately. This was a helpful approach for me because I could largely copy 
+and paste code from problem to the other and with minimal additions have a 
+working solution. I decided not to directly call make_matcher from make_parser 
+because I found that I would have to make significant changes in functionality 
+for make_matcher in order to get it working. It seemed most time efficient to 
+just copy code and add the appropriate code for handling trees.
+Also, since I could basically approach the make_parser as make_matcher with an 
+acceptor that only accepts empty suffixes, I could reuse the code relating to 
+the acceptor function and just pass my own self-defined function as a 
+parameter. This acceptor function returned a tree that it was passed which made 
+reusing code a lot simpler. I returned the value that the acceptor gave me just 
+like I did in make_matcher and it would return a tree instead of a suffix.
+Because of my approach, there is quite a lot of duplication and overlap when 
+you look at the two functions. This can largely be considered a weakness 
+because with so much overlap in the problem it seems like I should have been 
+able to find a solution with more common functions between them. 
+
+The main weaknesses having to do with my actual solution have to do with cases 
+of grammars that cause infinite loops and stack overflows. I found one of these 
+cases when I was writing my test cases. This was the case that a nonterminal 
+symbol is related to itself.
+For instance:
+
+Verb -> Verb Adverb
+
+When I tried running my function with the above example as part of the grammar 
+it resulted in the following error:
+
+Stack overflow during evaluation (looping recursion?).
+
+This is because my solution would continue to try to loop on Verb indefinitely 
+if a verb is seen in the test case. It would generate a parse tree that 
+contains a verb -> verb -> verb until the program crashes because of the way my 
+recursive calls work. This is a huge problem that I could not find a solution 
+to because if we could solve this it would allow grammars to increase in 
+complexity quite significantly. Ideally we would be able to parse these complex 
+grammars and this is a large limitation of my program.
+
+Another issue in the same vein is having two or more rules that call each other 
+in a loop. For instance:
+
+Verb -> Noun Adjective
+Noun -> Verb Adverb
+
+This would result in an infinite loop for the same reason and also can be 
+expanded to cases with N>2. If we are to represent our grammar as a graph with 
+rules as edges, it MUST be acyclic for all test cases to work as expected. If 
+we introduce a cycle such as the one above then it will allow for an infinite 
+recursion with some specific input. This is a massive weakness as most 
+realistic grammars have some sort of loop in them to allow for expansion.
+
+In order to fix this, I would somehow have to identify when I have reached one 
+of these loops and be able to break out of it at the appropriate time. This 
+would add a great deal of complexity to my code and in the limited time of this 
+project I was unable to find a solution to get around this issue in a better 
+way than crashing the program. 
