@@ -1,17 +1,60 @@
 #lang racket
 
 (define LAMBDA (string->symbol "\u03BB"))
-(define (lamb-check x y) 
+(define (combine x y) (string->symbol (string-append (symbol->string x) "!" (symbol->string y))))
+(define (comp x y) 
+  (cond
+  [(equal? x y) x]
+  [(and (boolean? x) (boolean? y))
+    (if x '% '(not %))]
+  [else (list 'if '% x y)])
+)
+(define (comp-hash x y hashmap) (
+  cond
+    [(equal? x y) (hash-ref hashmap x x)]
+    [else (let ([xMap (hash-ref hashmap x x)] [yMap (hash-ref hashmap y y)])  (comp xMap yMap))]
+))
+
+(define (lambda-funct x y hashmap) 
+  ;more or less where we use hash map
+  (cond
+    [(or (empty? x) (empty? y) (not (list? x)) (not (list? y)) (not (equal? (length x) (length y)))) (comp-hash x y hashmap)]
+    [else (cons (lambda-funct (car x) (car y) hashmap) (lambda-funct (cdr x) (cdr y) hashmap))]
+  )
+)
+(define (lambda-parse-params x y hashmap) 
+  (cond
+    [(or (empty? x) (empty? y)) (comp x y)]
+    [else (cons (hash-ref hashmap (car x) (car x)) (lambda-parse-params (cdr x) (cdr y) hashmap))]
+  ))
+(define (lambda-param x y hashmap) 
+  ;more or less where we build hash map
+  (cond
+    [(or (empty? x) (empty? y)) hashmap]
+    [(and (or (not (list? x)) (not (list? y))) (equal? x y)) hashmap]
+    [(and (or (not (list? x)) (not (list? y))) (not (equal? x y))) 
+    (define hashG (hash-set hashmap x (combine x y)))
+      (hash-set hashG y (combine x y))]
+    [(equal? (car x) (car y)) (define hashG (hash-set hashmap (car x) (car x)))
+      (lambda-param (cdr x) (cdr y) hashG)]
+    [else (define hashG (hash-set hashmap (car x) (combine (car x) (car y))))
+      (define hashN (hash-set hashG (car y) (combine (car x) (car y))))
+      (lambda-param (cdr x) (cdr y) hashN)]
+  ))
+(define (lamb-check x y hashmap) 
 	(cond
-		[(and (or (equal? x LAMBDA) (equal? x 'lambda)) (equal? y LAMBDA)) LAMBDA]
-		[(and (equal? y 'lambda) (equal? y LAMBDA)) LAMBDA]
-		[(and (equal? y 'lambda) (equal? x 'lambda)) 'lambda]
-		[else (display "what is going on")]
+    [(or (empty? (cdr x)) (empty? (cdr y))) (list (expr-compare (car x) (car y)))]
+    [(or (not (or (equal? (car x) 'lambda) (equal? (car x) LAMBDA))) (not (or (equal? (car y) 'lambda) (equal? (car y) LAMBDA)))) (comp x y)]
+		[(not (equal? (length (cdr x)) (length (cdr y)))) (comp x y)]
+    [(not (equal? (length (cadr x)) (length (cadr y)))) (comp x y)]
+    [else (if (or (equal? (car x) LAMBDA) (equal? (car y) LAMBDA))
+      (cons LAMBDA (cons (lambda-parse-params (cadr x) (cadr y) (lambda-param (cadr x) (cadr y) hashmap)) (lambda-funct (cddr x) (cddr y) (lambda-param (cadr x) (cadr y) hashmap))))
+      (cons 'lambda (cons (lambda-parse-params (cadr x) (cadr y) (lambda-param (cadr x) (cadr y) hashmap)) (lambda-funct (cddr x) (cddr y) (lambda-param (cadr x) (cadr y) hashmap)))))]
 	)
 )
 (define (expr-compare x y) 
 	;BEGIN TA HINT CODE
-    (cond
+  (cond
 	[(equal? x y) x]
 	[(and (boolean? x) (boolean? y))
 		(if x '% '(not %))]
@@ -20,12 +63,14 @@
 		(list 'if '% x y)]
 	; END TA HINT CODE
 	; need to add hash map tomfoolery with lambdas 
-	; if we have a lambda then we got work to do
-	[(or (equal? x 'lambda) (equal? x LAMBDA) (equal? y 'lambda) (equal? y LAMBDA))
-		(lamb-check x y)]
+  [(or (empty? x) (empty? y)) (comp x y)]
   [(not (equal? (length x) (length y)) ) (list 'if '% x y)]
   [(or (equal? (car x) 'quote)  (equal? (car y) 'quote)) (list 'if '% x y)]
+  [(or (equal? (car x) 'let)  (equal? (car y) 'let)) (list 'if '% x y)]
   [(not (equal? (equal? (car x) 'if)  (equal? (car y) 'if))) (list 'if '% x y)]
+  [(or (equal? (car x) 'lambda) (equal? (car x) LAMBDA) (equal? (car y) 'lambda) (equal? (car y) LAMBDA))
+    (define myHash (hash-set (hash) 'INIT 'INIT))
+     (lamb-check x y myHash)]
 	[else (cons (expr-compare (car x) (car y)) (expr-compare (cdr x) (cdr y)))]
     )
 )
@@ -124,4 +169,53 @@
               '((λ (a) (eqv? a ((lambda (b a) ((lambda (a b) (a b)) b a))
                                 a (λ (b) a))))
                 (lambda (a b) (a b)))))
+
+
+
+; EXTRA TEST CASES
+(expr-compare '(cons a lambda) '(cons a λ))
+;    =>       '(cons a (if % lambda λ))
+(expr-compare '(lambda (a) a) '(lambda (b) b))
+;    =>       '(lambda (a!b) a!b)
+(expr-compare '(lambda (a) b) '(cons (c) b))
+;    =>       '(if % (lambda (a) b) (cons (c) b))
+(expr-compare '((λ (if) (+ if 1)) 3) '((lambda (fi) (+ fi 1)) 3))
+;    =>       '((λ (if!fi) (+ if!fi 1)) 3)
+(expr-compare '(lambda (lambda) lambda) '(λ (λ) λ))
+;    =>       '(λ (lambda!λ) lambda!λ)
+(expr-compare ''lambda '(quote λ))
+;    =>       '(if % 'lambda 'λ)
+(expr-compare '(lambda (a b) a) '(λ (b) b))
+;    =>       '(if % (lambda (a b) a) (λ (b) b))
+(expr-compare '(λ (a b) (lambda (b) b)) '(lambda (b) (λ (b) b)))
+;    =>       '(if % (λ (a b) (lambda (b) b)) (lambda (b) (λ (b) b)))
+(expr-compare '(λ (let) (let ((x 1)) x)) '(lambda (let) (let ((y 1)) y)))
+;    =>       '(λ (let) (let (((if % x y) 1)) (if % x y)))
+(expr-compare '(λ (x) ((λ (x) x) x))
+              '(λ (y) ((λ (x) y) x)))
+;      ⇒      '(λ (x!y) ((λ (x) (if % x x!y)) (if % x!y x)))
+(expr-compare '(((λ (g)
+                   ((λ (x) (g (λ () (x x))))     ; This is the way we define a recursive function
+                    (λ (x) (g (λ () (x x))))))   ; when we don't have 'letrec'
+                 (λ (r)                               ; Here (r) will be the function itself
+                   (λ (n) (if (= n 0)
+                              1
+                              (* n ((r) (- n 1))))))) ; Therefore this thing calculates factorial of n
+                10)
+              '(((λ (x)
+                   ((λ (n) (x (λ () (n n))))
+                    (λ (r) (x (λ () (r r))))))
+                 (λ (g)
+                   (λ (x) (if (= x 0)
+                              1
+                              (* x ((g) (- x 1)))))))
+                9))
+;      ⇒      '(((λ (g!x)
+;                   ((λ (x!n) (g!x (λ () (x!n x!n))))
+;                    (λ (x!r) (g!x (λ () (x!r x!r))))))
+;                 (λ (r!g)
+;                   (λ (n!x) (if (= n!x 0)
+;                                1
+;                                (* n!x ((r!g) (- n!x 1)))))))
+;                (if % 10 9))
 
