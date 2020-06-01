@@ -1,10 +1,12 @@
 # CS-131
-Project 1 - Set Functions: OCaml
+Homework 1 - Set Functions: OCaml
 
-Project 2 - Grammar Parser: OCaml
+Homework 2 - Grammar Parser: OCaml
 
-Project 3 - Multithreading and JMM: Java
+Homework 3 - Multithreading and JMM: Java
 
-Project 4 - Tower Game Solver: Prolog
+Homework 4 - Tower Game Solver: Prolog
 
-Project 5 - Code Difference Analyzer: Scheme
+Homework 5 - Code Difference Analyzer: Scheme
+
+Project - Proxy Herd with asyncio: Python
